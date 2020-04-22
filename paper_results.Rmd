@@ -1,0 +1,114 @@
+---
+title: "Untitled"
+author: "Darren L Dahly"
+date: "6 July 2017"
+output:
+  word_document:  
+    reference_docx: "style.1.docx"
+---
+
+```{r setup, include = FALSE}
+
+  knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE, 
+                        fig.width  = 6 * 1.67, fig.height = 6)
+
+  load("data/data.RData") # Created with scripts/data.R from "source" data
+  source("scripts/functions.R")
+
+  library(tidyverse)
+  library(mixor)
+  library(sjPlot)
+  library(viridis)
+
+```
+
+# Descriptives
+
+The dataset includes `r nrow patients` patients nested in `r length(levels(patients$ward))` wards.
+
+*Table 1. Patient level characteristics
+
+```{r table_1_variables}
+
+# See table 1 from Corina's draft, p10
+
+  table_1_df <- select(patients, 
+    age, gender, diag, comorbid, meds, cfs, must_screen, must_score, 
+    dementia:paralysis, restrict_diet, modified_diet, diet_ref, diet_plan
+    )
+
+```
+
+```{r table_1}
+
+  data_frame(
+    Variable = name.1(table_1_df),
+    Missing   = n.miss(table_1_df),
+    "Mean SD" = summary.1(table_1_df),
+    "Median [IQR]" = med.iqr(table_1_df),
+    "(Min, Max)" = min.max(table_1_df)
+    ) %>% 
+  knitr::kable()
+  
+```
+
+
+*Table 2. Meal-level characteristics
+
+# Plots
+
+*Figure X. Patient level distribution of meal intake values by day and meal. 
+```{r}
+
+  ggplot(meals, aes(y = ptid, x = which_meal,
+                    fill = factor(mealintake))) +
+    geom_tile() +
+    scale_fill_viridis("Meal Intake", discrete = TRUE,
+                       guide = guide_legend(reverse = TRUE)) +
+    xlab("") + ylab("Patient ID") +
+    theme(legend.position = "bottom",
+          panel.background = element_blank(),
+          axis.text.y = element_text(size = 6))
+
+  ggsave("plots/intakes.png", height = 19.05, width = 33.86,
+         units = "cm", scale = 0.7)
+
+```
+
+Figure X. Distribution of meal intake values
+```{r}
+
+  ggplot(meals, aes(x = mealintake)) + geom_histogram()
+
+  ggplot(meals, aes(x = mealintake)) + geom_histogram() +
+    facet_wrap(~meal, ncol = 1)
+
+
+```
+
+
+# Models
+
+```{r}
+
+  meals <- arrange(meals, ptid, day, meal)
+
+  basic <- mixor(mealintake ~ meal + day, data = meals,
+                 id = ptid, link = "probit")
+
+  summary(basic)
+  
+```
+
+
+```{r code_book}
+
+  print(summarytools::dfSummary(data), method = "render")
+
+```
+
+```{r sysinfo}
+
+  DescTools::SysInfo()
+
+```
