@@ -19,6 +19,7 @@ output:
   library(mixor)
   library(sjPlot)
   library(viridis)
+  library(flextable)
 
 ```
 
@@ -33,14 +34,31 @@ The dataset includes `r nrow patients` patients nested in `r length(levels(patie
 # See table 1 from Corina's draft, p10
 
   table_1_df <- select(patients, 
-    age, gender, diag, comorbid, meds, cfs, must_screen, must_score, 
-    dementia:paralysis, restrict_diet, modified_diet, diet_ref, diet_plan
+    age, gender, patient_type, comorbid, meds, cfs, must_screen, must_score, 
+    dementia:paralysis, restrict_diet, modified_diet, diet_ref, diet_plan, 
+    redtray
     )
 
 ```
 
-```{r table_1}
+```{r table_1_h, eval = knitr::opts_knit$get("rmarkdown.pandoc.to") == "html"}
 
+# Table 1 for .md or .html
+  data_frame(
+    Variable = name.1(table_1_df),
+    Missing   = n.miss(table_1_df),
+    "Mean SD" = summary.1(table_1_df),
+    "Median [IQR]" = med.iqr(table_1_df),
+    "(Min, Max)" = min.max(table_1_df)
+    ) %>% 
+  flextable()
+  
+```
+
+
+```{r table_1_w, eval = !knitr::opts_knit$get("rmarkdown.pandoc.to") == "html"}
+
+# Table 1 for .docx
   data_frame(
     Variable = name.1(table_1_df),
     Missing   = n.miss(table_1_df),
@@ -52,8 +70,48 @@ The dataset includes `r nrow patients` patients nested in `r length(levels(patie
   
 ```
 
-
 *Table 2. Meal-level characteristics
+
+```{r table_2_variables}
+
+# See table 2 from Corina's draft, p12
+
+  table_2_df <- select(patients, 
+    age, gender, patient_type, comorbid, meds, cfs, must_screen, must_score, 
+    dementia:paralysis, restrict_diet, modified_diet, diet_ref, diet_plan, 
+    redtray
+    )
+
+```
+
+```{r table_2_h, eval = knitr::opts_knit$get("rmarkdown.pandoc.to") == "html"}
+
+# Table 2 for .md or .html
+  data_frame(
+    Variable = name.1(table_2_df),
+    Missing   = n.miss(table_2_df),
+    "Mean SD" = summary.1(table_2_df),
+    "Median [IQR]" = med.iqr(table_2_df),
+    "(Min, Max)" = min.max(table_2_df)
+    ) %>% 
+  flextable()
+  
+```
+
+
+```{r table_2_w, eval = !knitr::opts_knit$get("rmarkdown.pandoc.to") == "html"}
+
+# Table 2 for .docx
+  data_frame(
+    Variable = name.1(table_2_df),
+    Missing   = n.miss(table_2_df),
+    "Mean SD" = summary.1(table_2_df),
+    "Median [IQR]" = med.iqr(table_2_df),
+    "(Min, Max)" = min.max(table_2_df)
+    ) %>% 
+  knitr::kable()
+  
+```
 
 # Plots
 

@@ -35,6 +35,29 @@
     aes = adverseevents
     )
 
+    meals <- rename(meals,
+       intake = mealintake,
+       intake_4 = mealintake4,
+       intake_2 = mealintake2,
+       intake_3 = mealintake3,
+       diet_code = dietcode,
+        tray_table = traytable,
+       assist_reqd = assistreq,
+       assist_10min = assist10min,
+       assist_provd = assistprov,
+       feed_reqd = feedassreq,
+       feed_10min = feedin10min,
+       feed_provd = feedprovide,
+       interrupted = interrupted,
+       reason_intrpt = reasinterupt,
+       assist_post_int = assistpostinter,
+       reason_low_intake = reasonlowintake,
+       food_chart = foodchart,
+       comment = comment,
+       position_2 = position2,
+       lr_intake_ = lrmealintake2
+    )
+
 # Class ----
 # Id to char
   patients$ptid <- as.character(patients$ptid)
@@ -69,6 +92,22 @@
 # Missnig weights as zeros
   patients$wgt_admit[patients$wgt_admit == 0] <- NA
 
+# Set MUST to missing if MUST screen = 0
+# with(patients, table(must_screen, must_score))
+  patients$must_score[is.na(patients$must_screen)] <- NA
+
+# Set inake to a number
+  meals$intake <- as.numeric(as.character(meals$intake))
+  meals$intake[is.na(meals$intake)] <- 0
+
+  levels(meals$diet_code)[5] <- "Medical retriction (salt, fluid,fat)"
+  levels(meals$position) <- c("Off ward", "Bed, lying down", "Bed, propped up",
+                              "Bed, sitting up", "Chair")
+
+  levels(meals$tray_table) <- c("Not in reach", "Within reach")
+  levels(meals$redtray) <- c("Normal tray" "Red tray")
+
+
 # New variables ----------------------------------------------------------------
 
 # Categorize the must score
@@ -101,7 +140,7 @@
 
 # Data structure - mealintake/3meals/2days/patients
 
-  meals <- select(meals, ptid, day, meal, mealintake, everything()) %>%
+  meals <- select(meals, ptid, day, meal, intake, everything()) %>%
     arrange(ptid, day, meal)
 
   # group_by(meals, ptid) %>%
@@ -136,7 +175,7 @@
   meals <- full_join(
     meals,
     group_by(meals, ptid) %>%
-      summarise(mean_comp = mean(mealintake, na.rm = TRUE)),
+      summarise(mean_comp = mean(intake, na.rm = TRUE)),
     by = "ptid"
   ) %>%
     mutate(ptid = reorder(ptid, mealintake))
