@@ -3,8 +3,11 @@ title: "Untitled"
 author: "Darren L Dahly"
 date: "6 July 2017"
 output:
-  word_document:  
-    reference_docx: "style.1.docx"
+  html_document:
+    keep_md: true
+    df_print: paged
+  word_document:
+    reference_docx: style.1.docx
 ---
 
 ```{r setup, include = FALSE}
@@ -17,15 +20,49 @@ output:
 
   library(tidyverse)
   library(mixor)
+  library(rms)
   library(sjPlot)
   library(viridis)
   library(flextable)
+  library(patchwork)
+  library(brms)
+  library(ordinal)
 
 ```
 
+# Models
+
+Continuous variables were described by their means and SDs, medians and IQRs, and their ranges. Categorical variables were described by the counts in each category and their respective proportions. 
+
+The key outcome for this study was meal completion, described above. Analyzing these data presented two important challenges. The first was that that the measurements are ordinal in nature, i.e meal consumption was reflected by > 2 categories and these had a natural ordering. While it would have been possible to further categorize meal consumption into a binary outcome (e.g. low vs high), this would have discarded useful information, and inevitably lowered the power of the study to detect given effects, and decreased the precision of effect estimates. The second challenge was that the outcomes were measured repeatedly in the same patients, so that the observations were not independent. Failure to respect that would have led to inappropriately smaller standard errors.  
+
+To account for these issues, we used mixed-effect ordinal regression models with a logistic link function (i.e. the "proportional odds" model). For an ordinal outcome Y with k categories, these regressions model the probability that Yi≤k as a function of the predictors (or independent variables) included in the model. Thus, for each of k-1 levels of the ordinal outcomes, the basic form of the model estimates the following:
+
+P(Yi≤k) = exp(αk−x⊤iβ) / 1 + exp(αk−x⊤iβ)
+
+This formulation means that the larger values of β (the difference in the log-odds of Yi≤k associated with predictor x) indicate a higher probability of the outcome falling in the higher end of the ordinal scale. Like the more familiar logistic regression, β can be exponentiated, resulting in an odds-ratio (OR) where values > 1 (< 1) indicate a higher (lower) probability of higher outcome values (i.e. greater meal completion) associated with a given predictor. 
+
+Given the exploratory nature of this study, we estimated the effect of each predictor in separate models where the only covariate was meal type (breakfast, lunch, or tea). Results for each predictor as presented as ORs with 95% confidence intervals (CIs), alongside p-values from a likelihood ratio test comparing two nested models (with and without the predictor) based on a chi squared distribution with n df, where n is the difference in the number of degrees of freedom between the nested models, under a null hypothesis of no difference in likelihoods.  
+
+All analyses were conducting using R version 3.6.3. Mixed-effect ordinal regression models were estimated using the ordinal package. 
+
+REFs: 
+ordinal:   Christensen, R. H. B. (2019).
+  ordinal - Regression Models
+  for Ordinal Data. R package
+  version 2019.12-10.
+  https://CRAN.R-project.org/package=ordinal.
+  
+R: R Core Team (2020). R: A language and environment
+  for statistical computing. R Foundation for
+  Statistical Computing, Vienna, Austria. URL
+  https://www.R-project.org/.
+
 # Descriptives
 
-The dataset includes `r nrow patients` patients nested in `r length(levels(patients$ward))` wards.
+## Tables
+
+The dataset includes `r nrow(patients)` patients nested in `r length(levels(patients$ward))` wards.
 
 *Table 1. Patient level characteristics
 
@@ -36,10 +73,11 @@ The dataset includes `r nrow patients` patients nested in `r length(levels(patie
   table_1_df <- select(patients, 
     age, gender, patient_type, comorbid, meds, cfs, must_screen, must_score, 
     dementia:paralysis, restrict_diet, modified_diet, diet_ref, diet_plan, 
-    redtray
+    red_tray
     )
 
 ```
+
 
 ```{r table_1_h, eval = knitr::opts_knit$get("rmarkdown.pandoc.to") == "html"}
 
@@ -47,14 +85,13 @@ The dataset includes `r nrow patients` patients nested in `r length(levels(patie
   data_frame(
     Variable = name.1(table_1_df),
     Missing   = n.miss(table_1_df),
-    "Mean SD" = summary.1(table_1_df),
+    "Mean SD or N(%)" = summary.1(table_1_df),
     "Median [IQR]" = med.iqr(table_1_df),
     "(Min, Max)" = min.max(table_1_df)
     ) %>% 
   flextable()
-  
-```
 
+```
 
 ```{r table_1_w, eval = !knitr::opts_knit$get("rmarkdown.pandoc.to") == "html"}
 
@@ -62,7 +99,7 @@ The dataset includes `r nrow patients` patients nested in `r length(levels(patie
   data_frame(
     Variable = name.1(table_1_df),
     Missing   = n.miss(table_1_df),
-    "Mean SD" = summary.1(table_1_df),
+    "Mean SD or N(%)" = summary.1(table_1_df),
     "Median [IQR]" = med.iqr(table_1_df),
     "(Min, Max)" = min.max(table_1_df)
     ) %>% 
@@ -76,13 +113,13 @@ The dataset includes `r nrow patients` patients nested in `r length(levels(patie
 
 # See table 2 from Corina's draft, p12
 
-  table_2_df <- select(patients, 
-    age, gender, patient_type, comorbid, meds, cfs, must_screen, must_score, 
-    dementia:paralysis, restrict_diet, modified_diet, diet_ref, diet_plan, 
-    redtray
+  table_2_df <- select(meals, 
+    meal, diet_code, position, tray_table, red_tray, assist_reqd, assist_provd, 
+    assist_10min, feed_reqd, feed_provd, feed_10min, interrupted
     )
 
 ```
+
 
 ```{r table_2_h, eval = knitr::opts_knit$get("rmarkdown.pandoc.to") == "html"}
 
@@ -90,9 +127,7 @@ The dataset includes `r nrow patients` patients nested in `r length(levels(patie
   data_frame(
     Variable = name.1(table_2_df),
     Missing   = n.miss(table_2_df),
-    "Mean SD" = summary.1(table_2_df),
-    "Median [IQR]" = med.iqr(table_2_df),
-    "(Min, Max)" = min.max(table_2_df)
+    "N(%)" = summary.1(table_2_df),
     ) %>% 
   flextable()
   
@@ -105,25 +140,24 @@ The dataset includes `r nrow patients` patients nested in `r length(levels(patie
   data_frame(
     Variable = name.1(table_2_df),
     Missing   = n.miss(table_2_df),
-    "Mean SD" = summary.1(table_2_df),
-    "Median [IQR]" = med.iqr(table_2_df),
-    "(Min, Max)" = min.max(table_2_df)
+    "N(%)" = summary.1(table_2_df),
     ) %>% 
   knitr::kable()
   
 ```
 
-# Plots
+
+## Plots
 
 *Figure X. Patient level distribution of meal intake values by day and meal. 
 ```{r}
 
-  ggplot(meals, aes(y = ptid, x = which_meal,
-                    fill = factor(mealintake))) +
+  ggplot(meals, aes(y = ptid, x = which_meal, fill = factor(intake))) +
     geom_tile() +
     scale_fill_viridis("Meal Intake", discrete = TRUE,
                        guide = guide_legend(reverse = TRUE)) +
-    xlab("") + ylab("Patient ID") +
+    xlab("") + 
+    ylab("Patient ID") +
     theme(legend.position = "bottom",
           panel.background = element_blank(),
           axis.text.y = element_text(size = 6))
@@ -132,36 +166,458 @@ The dataset includes `r nrow patients` patients nested in `r length(levels(patie
          units = "cm", scale = 0.7)
 
 ```
+This is a plot of every meal and how much the intake was for each of them. Each row is a patient. You can see the degree to which people are missing observations, and also how there is so much more meal completion for the breakfast meals (but not much apparent difference between the 2 sets of days). It's also ordered, so the people with the highest average meal completion over all meals are at the top. 
+
 
 Figure X. Distribution of meal intake values
 ```{r}
 
-  ggplot(meals, aes(x = mealintake)) + geom_histogram()
+  dist_bar_plot <- function(df, var, ...){
+    
+    df <- mutate(df, intake = factor(intake))
+    
+    p1 <- ggplot(df, aes_string(x = var, fill = "intake")) + 
+      geom_bar() +
+      scale_fill_viridis("Meal Intake", discrete = TRUE,
+                         guide = guide_legend(reverse = FALSE)) +
+      theme_minimal() +
+      ylab("Count") +
+      xlab("")
+  
+    p2 <- ggplot(df, aes_string(x = var, fill = "intake")) + 
+      geom_bar(position = "fill") +
+      scale_fill_viridis("Meal Intake", discrete = TRUE,
+                         guide = guide_legend(reverse = FALSE)) +
+      theme_minimal() +
+      ylab("Proportion") +
+      xlab("")
+    
+    return(p1 + p2 + plot_layout(ncol = 1, guides = "collect"))
+  }
 
-  ggplot(meals, aes(x = mealintake)) + geom_histogram() +
-    facet_wrap(~meal, ncol = 1)
-
+  dist_bar_plot(meals, "meal")
 
 ```
+This just gives another view of the fairly dramatic meal effect. The two facets of the plot are the same data, but in the bottom facet the data are normalized to a proportion of meals (rather than a count, as in the top facet).
 
+## Models
 
-# Models
-
-```{r}
+```{r basic_model}
 
   meals <- arrange(meals, ptid, day, meal)
+  meals$intake_2 <- factor(meals$intake, ordered = TRUE)
+  meals <- droplevels(meals)
 
-  basic <- mixor(mealintake ~ meal + day, data = meals,
-                 id = ptid, link = "probit")
+# Little function to convert log odds to probabilities
 
-  summary(basic)
+  invlogit <- function(x){
+    return(
+      1/(1 + exp(x))
+    )
+  }
+
+# This is a ordinal model with a logit link. It returns a set of thresholds
+# that give the cumulative probability of being <= K (for a K level outcome).
+# This does not include a random effect. 
+
+  basic <- clm(intake_2 ~ 1, data = meals, link = "logit")
+
+# 1 - invlogit(basic$alpha)
+# cumsum(round(table(meals$intake_2)/sum(table(meals$intake_2)), 3))
+# THIS MATCHES
+
   
 ```
 
+```{r empty_model_re}
+  
+  empty_re <- mixor(intake_2 ~ 1, data = meals,
+                    id = ptid, link = "logit") # With random effect
 
-```{r code_book}
+  summary(empty_re)
 
-  print(summarytools::dfSummary(data), method = "render")
+# This is to get the right contrasts, which are the intercept (column1) * -1
+# then add the relevant threshold (columns 3, 4, 5).  
+# cm <- matrix(c(-1, 0, 0, 0, 0,
+#                -1, 0, 1, 0, 0,
+#                -1, 0, 0, 1, 0,
+#                -1, 0, 0, 0, 1),
+#              ncol = 4)
+# 
+# con <- Contrasts(empty_re, contrast.matrix = cm)
+# 
+# invlogit(con[1:4]) #int
+#   
+# 1 - invlogit(con[1:4]) #int
+# cumsum(round(table(meals$intake_2)/sum(table(meals$intake_2)), 3))
+# These are fairly close, but withouth the RE  
+  
+```
+```{r basic_model_re}
+  
+  basic_re <- mixor(intake_2 ~ day + meal, data = meals,
+                 id = ptid, link = "logit") # With random effect
+
+  summary(basic_re)
+  
+# log odds < 0 mean less likely to complete meal for lunch and tea than
+# breakfast, which is confirmed in the plots above.
+  
+# cm <- matrix(c(-1, 0, 0, 0, 0, 0, 0, 0,
+#                -1, 0, 0, 0, 0, 1, 0, 0,
+#                -1, 0, 0, 0, 0, 0, 1, 0,
+#                -1, 0, 0, 0, 0, 0, 0, 1),
+#              ncol = 4)
+# 
+# con <- Contrasts(basic_re, contrast.matrix = cm)
+
+# invlogit(con[1:4]) #int
+#   
+# 1 - invlogit(con[1:4]) #int on day 1 and breakfast
+# cumsum(round(table(meals$intake_2)/sum(table(meals$intake_2)), 3))
+  
+```
+
+```{r basic_model_re_2}
+  
+  basic_re_2 <- clmm(intake_2 ~ day + meal + (1|ptid), data = meals,
+                     link = "logit") # With random effect
+
+  summary(basic_re_2)
+  
+  basic_re_2$alpha
+  
+# 1 - invlogit(con[1:4]) # Model with mixor
+# 1 - invlogit(basic_re_2$alpha) # Model with clmm - almost identical
+
+```
+
+# Meal level predictors
+
+## Plots
+
+The plots that follow just give the distribution of meal completion across levels of the different predictors. They are just to help us confirm and interpret the results from the models. They can all probably go into the supplemental info for the paper. 
+
+More meal completion in the general meal.
+
+```{r}
+
+  dist_bar_plot(meals, "diet_code")
+
+```
+
+Less meal completion lying down.
+
+```{r}
+
+  dist_bar_plot(meals, "position")
+
+```
+
+Less meal completion with the red tray.
+
+```{r}
+
+  dist_bar_plot(meals, "red_tray")
+
+```
+
+Less meal completion when assistance was required. 
+
+```{r}
+
+  dist_bar_plot(meals, "assist_reqd")
+
+```
+
+Less completion when feeding assistance was required. 
+
+```{r}
+
+  dist_bar_plot(meals, "feed_reqd")
+
+```
+
+## Models
+
+Next we model these relationships in a series of separate models for each of these factors, adjusted for which meal it was. The results are presented as ORs with 95% CIs, where OR > 1 mean greater odds of higher meal completion relative to the reference category. 
+
+```{r meal_level_models_re}
+
+# Take univariable models for each key meal factor, adjusted for meal
+
+  vars <- c("diet_code", "position", "red_tray", "assist_reqd", "feed_reqd")
+
+  models_meals_uni <- list(); k <- 1 
+  base <-  clmm(intake_2 ~ meal + (1|ptid), data = meals, link = "logit")
+
+  for(i in vars){
+    
+    form <- as.formula(paste0("intake_2 ~ meal + ", i, " + (1|ptid)"))
+    new <- clmm(form, data = meals, link = "logit")
+    
+    # drop1(new, test = "Chi") # Matches the LRT below   
+    
+    j <- length(new$coefficients) - length(base$coefficients)
+    pvalue <- signif(
+      pchisq(
+        ((base$logLik * -2) - (new$logLik * -2)), df = j, lower.tail = FALSE
+        ), 
+      3
+      )
+    
+    pvalue2 <- ifelse(
+      pvalue < 0.001, "(p < 0.001)", paste0("(p = ", pvalue, ")")
+      )
+    
+    rns <- names(new$coefficients)[!(names(new$coefficients) %in%
+                                     names(base$coefficients))]
+    
+    out <- summary(new)$coefficients[rns, ]
+    rns <- gsub(i, "", rns)
+
+    if(class(out) == "numeric"){out <- as.data.frame(t(out))}
+    if(class(out) == "matrix"){out <- as.data.frame(out)}
+    
+    names(out) <- c("est", "se", "z", "p")
+    
+    if(length(levels(meals[[i]])) > 2){
+      models_meals_uni[[k]] <-  bind_rows(
+        mutate(out, level = rns), 
+        data_frame(est = 0, se = 0, z = NA, p = NA, 
+                   level = paste0(levels(meals[[i]])[1], " (REF)"))
+      ) %>%
+        mutate(var = i, lrt_p = pvalue, lrt_p_lab = pvalue2)
+    }
+    else{
+      models_meals_uni[[k]] <- mutate(
+        out, level = paste0(rns, " (vs ", levels(meals[[i]])[1], ")")
+        ) %>%
+        mutate(var = i, lrt_p = pvalue, lrt_p_lab = pvalue2)
+    }
+    
+    k <- k + 1
+  }
+  
+  var_labs <- c("Assistance required", "Diet", "Feeding assistance req.", 
+                "Position", "Red tray")
+  
+  models_meals_uni <- do.call(bind_rows, models_meals_uni) %>%
+    mutate(var = factor(var, labels = var_labs)) %>%
+    mutate(var2 =  paste(var, lrt_p_lab))
+  
+```
+
+```{r}
+
+  ggplot(models_meals_uni, aes(
+    y = exp(est), ymax = exp(est + (1.96*se)), ymin = exp(est - (1.96*se)), 
+    x = level)
+    ) +
+    facet_wrap(~var2, nrow = 1, scales = "free", 
+               labeller = label_wrap_gen(25)) +
+    geom_pointrange() +
+    ylab("") +
+    geom_hline(yintercept = 1, color = "red", linetype = "dashed") +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+    xlab("") +
+    ylab("OR (95%CI)")
+     
+
+```
+
+So the plot just gives estimates to go along with the earlier plots. Assistance, special diets, laying down, and the red tray were all associated with less meal completion. However, estimates generally had wide 95% CIs that were consistent with a wide variation in effect sizes, except for position, for which was unambiguously associated with lower odds of higher meal completion. 
+
+
+# Patient level predictors
+
+## Plots
+
+Next we do the same thing for the patient level characteristics. 
+
+Less completion for females. 
+
+```{r}
+
+  patients <- full_join(
+    patients, 
+    select(meals, intake, intake_2, meal, ptid), 
+    by = "ptid"
+  )
+
+  dist_bar_plot(patients, "gender")
+
+```
+
+No discernible pattern for age. 
+
+```{r}
+
+  dist_bar_plot(patients, "age")
+
+```
+
+Less meal completion with worsening status, except for very fit, which is odd. Might needs to collapse these.  
+
+```{r}
+
+  dist_bar_plot(patients, "cfs")
+
+```
+
+No discernible pattern for comorbidities 
+
+```{r}
+
+  dist_bar_plot(patients, "comorbid")
+
+```
+
+No discernible pattern for meds 
+
+```{r}
+
+  dist_bar_plot(patients, "meds")
+
+```
+
+Less meal completion with higher MUST. 
+
+```{r}
+
+  dist_bar_plot(patients, "must_score")
+
+```
+
+No discernible patter for los. 
+
+```{r}
+
+  dist_bar_plot(patients, "los")
+
+```
+
+
+Less meal completion with AES
+
+```{r}
+
+  dist_bar_plot(patients, "aes")
+
+```
+
+## Models
+
+```{r patient_level_models_re}
+
+# Take univariable models for each key patient factor, adjusted for meal
+
+  vars <- c("gender", "age", "cfs", "comorbid", "meds", "must_score", "los", 
+            "aes")
+
+  models_patients_uni <- list(); k <- 1 
+  
+  for(i in vars){
+    
+    meals2 <- full_join(
+      select(patients, ptid, i), 
+      select(meals, intake_2, meal, ptid), 
+      by = "ptid"
+    ) %>%
+      droplevels() %>%
+      na.omit()
+    
+    meals2 <- arrange(meals2, ptid, meal)
+  
+    
+    form <- as.formula(paste0("intake_2 ~ meal + ", i, " + (1|ptid)"))
+    new <- clmm(form, data = meals2, link = "logit")
+    
+    pvalue <- signif(drop1(new, test = "Chi")[i, "Pr(>Chi)"], 3)
+    # using drop1 bc probs with doing the LRT by hand. 
+    
+    pvalue2 <- ifelse(
+      pvalue < 0.001, "(p < 0.001)", paste0("(p = ", pvalue, ")")
+      )
+    
+    rns <- names(new$coefficients)[!(names(new$coefficients) %in%
+                                     names(base$coefficients))]
+    
+    out <- summary(new)$coefficients[rns, ]
+    rns <- gsub(i, "", rns)
+
+    if(class(out) == "numeric"){out <- as.data.frame(t(out))}
+    if(class(out) == "matrix"){out <- as.data.frame(out)}
+    
+    names(out) <- c("est", "se", "z", "p")
+    
+    if(class(meals2[[i]]) == "factor"){
+      if(length(levels(meals2[[i]])) > 2){
+        models_patients_uni[[k]] <-  bind_rows(
+          mutate(out, level = rns), 
+          data_frame(est = 0, se = 0, z = NA, p = NA, 
+                     level = paste0(levels(meals2[[i]])[1], " (REF)"))
+        ) %>%
+          mutate(var = i, lrt_p = pvalue, lrt_p_lab = pvalue2)
+      }
+      else{
+        models_patients_uni[[k]] <- mutate(
+          out, level = paste0(rns, " (vs ", levels(meals2[[i]])[1], ")")
+          ) %>%
+          mutate(var = i, lrt_p = pvalue, lrt_p_lab = pvalue2)
+      }
+    }
+    if(class(meals2[[i]]) == "numeric"){
+      models_patients_uni[[k]] <- mutate(out, level = "") %>%
+          mutate(var = i, lrt_p = pvalue, lrt_p_lab = pvalue2)
+    }
+    
+    k <- k + 1
+  }
+  
+  var_labs <- c("Female (vs Male)", "Age (years)", "CFS", 
+                "Comorbidities", "Number of medications", "MUST", "LOS", 
+                "Any adverse events (vs none)")
+  
+  var_labs <- var_labs[order(vars)]
+  
+  models_patients_uni <- do.call(bind_rows, models_patients_uni) %>%
+    mutate(var = factor(var, labels = var_labs)) %>%
+    mutate(var2 =  paste(var, lrt_p_lab))
+  
+```
+
+```{r}
+
+  tar <- levels(factor(models_patients_uni$var2))
+
+  filter(models_patients_uni, var2 %in% tar[c(1:8)]) %>%
+  ggplot(aes(
+    y = exp(est), ymax = exp(est + (1.96*se)), ymin = exp(est - (1.96*se)), 
+    x = level)
+    ) +
+    facet_wrap(~var2, nrow = 2, scales = "free", 
+               labeller = label_wrap_gen(25)) +
+    geom_pointrange() +
+    ylab("") +
+    geom_hline(yintercept = 1, color = "red", linetype = "dashed") +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+    xlab("") +
+    ylab("OR (95%CI)")
+     
+
+```
+
+
+```{r code_book_patients}
+
+  print(summarytools::dfSummary(patients), method = "render")
+
+```
+
+```{r code_book_meals}
+
+  print(summarytools::dfSummary(meals), method = "render")
 
 ```
 
@@ -170,3 +626,4 @@ Figure X. Distribution of meal intake values
   DescTools::SysInfo()
 
 ```
+

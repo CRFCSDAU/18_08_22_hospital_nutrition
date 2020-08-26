@@ -33,30 +33,31 @@
     wgt_fup = weightfollowup,
     dis_date = datedischarge,
     aes = adverseevents
-    )
+  )
 
-    meals <- rename(meals,
-       intake = mealintake,
-       intake_4 = mealintake4,
-       intake_2 = mealintake2,
-       intake_3 = mealintake3,
-       diet_code = dietcode,
-        tray_table = traytable,
-       assist_reqd = assistreq,
-       assist_10min = assist10min,
-       assist_provd = assistprov,
-       feed_reqd = feedassreq,
-       feed_10min = feedin10min,
-       feed_provd = feedprovide,
-       interrupted = interrupted,
-       reason_intrpt = reasinterupt,
-       assist_post_int = assistpostinter,
-       reason_low_intake = reasonlowintake,
-       food_chart = foodchart,
-       comment = comment,
-       position_2 = position2,
-       lr_intake_ = lrmealintake2
-    )
+  meals <- rename(meals,
+    intake = mealintake,
+    intake_4 = mealintake4,
+    intake_2 = mealintake2,
+    intake_3 = mealintake3,
+    diet_code = dietcode,
+    tray_table = traytable,
+    red_tray = redtray,
+    assist_reqd = assistreq,
+    assist_10min = assist10min,
+    assist_provd = assistprov,
+    feed_reqd = feedassreq,
+    feed_10min = feedin10min,
+    feed_provd = feedprovide,
+    interrupted = interrupted,
+    reason_intrpt = reasinterupt,
+    assist_post_int = assistpostinter,
+    reason_low_intake = reasonlowintake,
+    food_chart = foodchart,
+    comment = comment,
+    position_2 = position2,
+    lr_intake_2 = lrmealintake2
+   )
 
 # Class ----
 # Id to char
@@ -99,13 +100,15 @@
 # Set inake to a number
   meals$intake <- as.numeric(as.character(meals$intake))
   meals$intake[is.na(meals$intake)] <- 0
+  meals$intake[meals$intake == 100] <- 1
+
 
   levels(meals$diet_code)[5] <- "Medical retriction (salt, fluid,fat)"
   levels(meals$position) <- c("Off ward", "Bed, lying down", "Bed, propped up",
                               "Bed, sitting up", "Chair")
 
   levels(meals$tray_table) <- c("Not in reach", "Within reach")
-  levels(meals$redtray) <- c("Normal tray" "Red tray")
+  levels(meals$red_tray) <- c("Normal tray", "Red tray")
 
 
 # New variables ----------------------------------------------------------------
@@ -122,14 +125,14 @@
 
   patients <- left_join(
     patients,
-    filter(meals, redtray == "red tray") %>%
-      select(ptid, redtray) %>%
+    filter(meals, red_tray == "red tray") %>%
+      select(ptid, red_tray) %>%
       distinct(),
     by = "ptid"
   )
 
-  patients$redtray[is.na(patients$redtray)] <- levels(patients$redtray)[1]
-  levels(patients$redtray) <- c("No", "Yes" )
+  patients$red_tray[is.na(patients$red_tray)] <- levels(patients$red_tray)[1]
+  levels(patients$red_tray) <- c("No", "Yes" )
 
 # We have 295 meals recorded on 63 patients. They want to predict who doesn't
 # finish their meals. The main issue is that they categorize the outcome twice:
@@ -162,12 +165,22 @@
   meals$meal <- factor(meals$meal, labels = c("Breakfast", "Lunch", "Tea"))
 
 # Add a marker for meal-day
-  meals$which_meal <- with(meals, interaction(meal, day))
-  meals$which_meal <- factor(
-    meals$which_meal,
+  # meals$which_meal <- with(meals, interaction(meal, day))
+  # meals$which_meal <- factor(
+  #   meals$which_meal,
+
+
+
+    labels = c("Breakfast Day 1", "Lunch Day 1", "Tea Day 1", "Breakfast Day 7",
+               "Lunch Day 2", "Tea Day 2")
+
+    # vs
+
     labels = c("Breakfast Day 1", "Lunch Day 1", "Tea Day 1",
-               "Breakfast Day 2", "Lunch Day 2", "Tea Day 2")
-    )
+               "Breakfast Day 7", "Lunch Day 2", "Tea Day 2")
+
+
+
 
 # Get the average meal completion for each patient and reorder patients based
 # on that.
@@ -178,7 +191,21 @@
       summarise(mean_comp = mean(intake, na.rm = TRUE)),
     by = "ptid"
   ) %>%
-    mutate(ptid = reorder(ptid, mealintake))
+    mutate(ptid = reorder(ptid, intake))
+
+
+# More cleaning
+# There is only 1 person reorting off ward for bed position...set to missing
+  meals$position[meals$position == "Off ward"] <- NA
+
+# Convert yes/no to Yes/No
+
+  meals$assist_reqd <- factor(meals$assist_reqd, labels = c("No", "Yes"))
+  meals$feed_reqd <- factor(meals$feed_reqd, labels = c("No", "Yes"))
+  meals$aes <-
+
+
+  meals <- droplevels(meals)
 
 
 # Plots ------------------------------------------------------------------------
@@ -237,9 +264,9 @@
 # There is a mismatch on wards and patient_type
   # with(patients, table(ward, patient_type))
 
-# Can match any redtray by surgical/medical numbers to Corina's table 1 (p10)
-  # with(patients, table(redtray, patient_type))
-  # with(patients, table(redtray, ward))
+# Can match any red_tray by surgical/medical numbers to Corina's table 1 (p10)
+  # with(patients, table(red_tray, patient_type))
+  # with(patients, table(red_tray, ward))
 
 # Why do many missing weights at admission? Follow-up?
 # How are MUST scores done then?
