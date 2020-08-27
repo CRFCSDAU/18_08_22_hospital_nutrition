@@ -390,17 +390,16 @@ Next we model these relationships in a series of separate models for each of the
         mutate(var = i, lrt_p = pvalue, lrt_p_lab = pvalue2)
     }
     else{
-      models_meals_uni[[k]] <- mutate(
-        out, level = paste0(rns, " (vs ", levels(meals[[i]])[1], ")")
-        ) %>%
+      models_meals_uni[[k]] <- mutate(out, level = "") %>%
         mutate(var = i, lrt_p = pvalue, lrt_p_lab = pvalue2)
     }
     
     k <- k + 1
   }
   
-  var_labs <- c("Assistance required", "Diet", "Feeding assistance req.", 
-                "Position", "Red tray")
+  var_labs <- c("Assistance required (vs none)", "Diet", 
+                "Feeding assistance req. (vs none)", 
+                "Position", "Red tray (vs normal tray)")
   
   models_meals_uni <- do.call(bind_rows, models_meals_uni) %>%
     mutate(var = factor(var, labels = var_labs)) %>%
@@ -464,6 +463,11 @@ Less meal completion with worsening status, except for very fit, which is odd. M
   dist_bar_plot(patients, "cfs")
 
 ```
+```{r}
+
+  dist_bar_plot(patients, "cfs_cat")
+
+```
 
 No discernible pattern for comorbidities 
 
@@ -512,7 +516,8 @@ Less meal completion with AES
 
 # Take univariable models for each key patient factor, adjusted for meal
 
-  vars <- c("gender", "age", "cfs", "comorbid", "meds", "must_score", "los", 
+  vars <- c("gender", "age", "cfs", "cfs_cat", "comorbid", "meds", 
+            "must_score", "los", 
             "aes")
 
   models_patients_uni <- list(); k <- 1 
@@ -561,21 +566,19 @@ Less meal completion with AES
           mutate(var = i, lrt_p = pvalue, lrt_p_lab = pvalue2)
       }
       else{
-        models_patients_uni[[k]] <- mutate(
-          out, level = paste0(rns, " (vs ", levels(meals2[[i]])[1], ")")
-          ) %>%
-          mutate(var = i, lrt_p = pvalue, lrt_p_lab = pvalue2)
+        models_patients_uni[[k]] <- mutate(out, level = "") %>%
+        mutate(var = i, lrt_p = pvalue, lrt_p_lab = pvalue2)
       }
     }
     if(class(meals2[[i]]) == "numeric"){
       models_patients_uni[[k]] <- mutate(out, level = "") %>%
-          mutate(var = i, lrt_p = pvalue, lrt_p_lab = pvalue2)
+      mutate(var = i, lrt_p = pvalue, lrt_p_lab = pvalue2)
     }
     
     k <- k + 1
   }
   
-  var_labs <- c("Female (vs Male)", "Age (years)", "CFS", 
+  var_labs <- c("Female (vs Male)", "Age (years)", "CFS", "CFS Category",
                 "Comorbidities", "Number of medications", "MUST", "LOS", 
                 "Any adverse events (vs none)")
   

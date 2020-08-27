@@ -165,22 +165,12 @@
   meals$meal <- factor(meals$meal, labels = c("Breakfast", "Lunch", "Tea"))
 
 # Add a marker for meal-day
-  # meals$which_meal <- with(meals, interaction(meal, day))
-  # meals$which_meal <- factor(
-  #   meals$which_meal,
-
-
-
-    labels = c("Breakfast Day 1", "Lunch Day 1", "Tea Day 1", "Breakfast Day 7",
-               "Lunch Day 2", "Tea Day 2")
-
-    # vs
-
+  meals$which_meal <- with(meals, interaction(meal, day))
+  meals$which_meal <- factor(
+    meals$which_meal,
     labels = c("Breakfast Day 1", "Lunch Day 1", "Tea Day 1",
-               "Breakfast Day 7", "Lunch Day 2", "Tea Day 2")
-
-
-
+               "Breakfast Day 2", "Lunch Day 2", "Tea Day 2")
+    )
 
 # Get the average meal completion for each patient and reorder patients based
 # on that.
@@ -206,6 +196,16 @@
 
 
   meals <- droplevels(meals)
+
+  patients <- patients %>%
+    mutate(
+      cfs_cat = factor(
+        case_when(
+          cfs %in% c("Very fit", "Well", "Managing well", "Vulnerable") ~ "Low",
+          !cfs %in% c("Very fit", "Well", "Managing well", "Vulnerable") ~ "High"
+        )
+      )
+    )
 
 
 # Plots ------------------------------------------------------------------------
