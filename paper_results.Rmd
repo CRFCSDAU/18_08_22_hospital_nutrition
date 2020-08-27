@@ -463,6 +463,9 @@ Less meal completion with worsening status, except for very fit, which is odd. M
   dist_bar_plot(patients, "cfs")
 
 ```
+
+Less meal completion with "high" frailty. 
+
 ```{r}
 
   dist_bar_plot(patients, "cfs_cat")
@@ -614,13 +617,13 @@ Less meal completion with AES
 
 ```{r code_book_patients}
 
-  print(summarytools::dfSummary(patients), method = "render")
+#  print(summarytools::dfSummary(patients), method = "render")
 
 ```
 
 ```{r code_book_meals}
 
-  print(summarytools::dfSummary(meals), method = "render")
+#  print(summarytools::dfSummary(meals), method = "render")
 
 ```
 
