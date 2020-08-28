@@ -231,10 +231,10 @@ This just gives another view of the fairly dramatic meal effect. The two facets 
 
 ```{r empty_model_re}
   
-  empty_re <- mixor(intake_2 ~ 1, data = meals,
-                    id = ptid, link = "logit") # With random effect
-
-  summary(empty_re)
+# empty_re <- mixor(intake_2 ~ 1, data = meals,
+#                   id = ptid, link = "logit") # With random effect
+# 
+# summary(empty_re)
 
 # This is to get the right contrasts, which are the intercept (column1) * -1
 # then add the relevant threshold (columns 3, 4, 5).  
@@ -255,10 +255,10 @@ This just gives another view of the fairly dramatic meal effect. The two facets 
 ```
 ```{r basic_model_re}
   
-  basic_re <- mixor(intake_2 ~ day + meal, data = meals,
-                 id = ptid, link = "logit") # With random effect
-
-  summary(basic_re)
+# basic_re <- mixor(intake_2 ~ day + meal, data = meals,
+#                id = ptid, link = "logit") # With random effect
+# 
+# summary(basic_re)
   
 # log odds < 0 mean less likely to complete meal for lunch and tea than
 # breakfast, which is confirmed in the plots above.
@@ -284,8 +284,6 @@ This just gives another view of the fairly dramatic meal effect. The two facets 
                      link = "logit") # With random effect
 
   summary(basic_re_2)
-  
-  basic_re_2$alpha
   
 # 1 - invlogit(con[1:4]) # Model with mixor
 # 1 - invlogit(basic_re_2$alpha) # Model with clmm - almost identical
