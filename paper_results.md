@@ -82,51 +82,7 @@ This just gives another view of the fairly dramatic meal effect. The two facets 
 
 
 
-```
-## 
-## Call:
-## mixor(formula = intake_2 ~ 1, data = meals, id = ptid, link = "logit")
-## 
-## Deviance =         734.8134 
-## Log-likelihood =  -367.4067 
-## RIDGEMAX =         0.4 
-## AIC =             -372.4067 
-## SBC =             -377.8808 
-## 
-##                    Estimate Std. Error z value   P(>|z|)    
-## (Intercept)         3.09324    0.30733 10.0649 < 2.2e-16 ***
-## Random.(Intercept)  2.25743    0.70492  3.2024  0.001363 ** 
-## Threshold0.25       1.60448    0.18421  8.7103 < 2.2e-16 ***
-## Threshold0.5        2.50966    0.23025 10.8999 < 2.2e-16 ***
-## Threshold0.75       2.87379    0.22772 12.6198 < 2.2e-16 ***
-## ---
-## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
-```
 
-```
-## 
-## Call:
-## mixor(formula = intake_2 ~ day + meal, data = meals, id = ptid, 
-##     link = "logit")
-## 
-## Deviance =         691.8019 
-## Log-likelihood =  -345.9009 
-## RIDGEMAX =         0.3 
-## AIC =             -353.9009 
-## SBC =             -362.6595 
-## 
-##                    Estimate Std. Error z value   P(>|z|)    
-## (Intercept)         4.62167    0.43897 10.5284 < 2.2e-16 ***
-## dayDay 2            0.11094    0.38259  0.2900  0.771829    
-## mealLunch          -1.92491    0.34172 -5.6331  1.77e-08 ***
-## mealTea            -1.66002    0.36554 -4.5413  5.59e-06 ***
-## Random.(Intercept)  3.11620    1.00116  3.1126  0.001855 ** 
-## Threshold0.25       1.74486    0.19283  9.0489 < 2.2e-16 ***
-## Threshold0.5        2.79063    0.24496 11.3923 < 2.2e-16 ***
-## Threshold0.75       3.23748    0.23960 13.5119 < 2.2e-16 ***
-## ---
-## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
-```
 
 
 ```
@@ -157,11 +113,6 @@ This just gives another view of the fairly dramatic meal effect. The two facets 
 ## 0.25|0.5  -2.8480     0.3606  -7.898
 ## 0.5|0.75  -1.8114     0.3478  -5.209
 ## 0.75|1    -1.3693     0.3415  -4.009
-```
-
-```
-##    0|0.25  0.25|0.5  0.5|0.75    0.75|1 
-## -4.580515 -2.847998 -1.811352 -1.369345
 ```
 
 # Meal level predictors
@@ -266,6 +217,6 @@ Less meal completion with AES
 ## x86_64-w64-mingw32/x64 (64-bit) 
 ## 
 ## Loaded Packages: 
-##  ordinal (2019.12-10), brms (2.13.5), Rcpp (1.0.5), patchwork (1.0.1), flextable (0.5.10), viridis (0.5.1), viridisLite (0.3.0), sjPlot (2.8.4), rms (6.0-1), SparseM (1.78), Hmisc (4.4-1), Formula (1.2-3), lattice (0.20-38), mixor (1.0.4), survival (3.2-3), forcats (0.5.0), stringr (1.4.0), dplyr (1.0.1), purrr (0.3.4), readr (1.3.1), tidyr (1.1.1), tibble (3.0.3), ggplot2 (3.3.2), tidyverse (1.3.0)
+##  ordinal (2019.12-10), brms (2.13.5), Rcpp (1.0.5), patchwork (1.0.1), flextable (0.5.10), viridis (0.5.1), viridisLite (0.3.0), sjPlot (2.8.4), rms (6.0-1), SparseM (1.78), Hmisc (4.4-1), Formula (1.2-3), lattice (0.20-38), mixor (1.0.4), survival (3.2-3), forcats (0.5.0), stringr (1.4.0), dplyr (1.0.2), purrr (0.3.4), readr (1.3.1), tidyr (1.1.2), tibble (3.0.3), ggplot2 (3.3.2), tidyverse (1.3.0)
 ```
 

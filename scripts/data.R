@@ -5,7 +5,7 @@
 
 # Data -------------------------------------------------------------------------
 
-  load("data/nutrition.RData")
+  load("data/nutrition.RData") # Brendan converted these from .sav into .RData
 
   patients <- D3_Nut_profile.tbl; rm(D3_Nut_profile.tbl)
   meals <-    Nutritionobs.tbl;   rm(Nutritionobs.tbl)
@@ -119,6 +119,12 @@
     levels = levels(factor(patients$must_score)),
     labels = c("Low", "Medium", rep("High", 5))
   )
+
+  patients$must_cat2 <- factor(
+    patients$must_score,
+    levels = levels(factor(patients$must_score)),
+    labels = c("Low", rep("High", 6))
+  )
 # with(patients, table(must_score, must_cat))
 
 # Add in at least one red-tray as a patient level variable.
@@ -192,8 +198,6 @@
 
   meals$assist_reqd <- factor(meals$assist_reqd, labels = c("No", "Yes"))
   meals$feed_reqd <- factor(meals$feed_reqd, labels = c("No", "Yes"))
-  meals$aes <-
-
 
   meals <- droplevels(meals)
 
@@ -206,6 +210,8 @@
         )
       )
     )
+
+
 
 
 # Plots ------------------------------------------------------------------------
